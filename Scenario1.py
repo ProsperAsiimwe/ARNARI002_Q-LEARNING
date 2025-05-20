@@ -4,6 +4,7 @@ from FourRooms import FourRooms
 import sys
 import matplotlib.pyplot as plt
 import os
+from math import exp
 
 # Parameters
 EPISODES = 500
@@ -12,78 +13,113 @@ GAMMA = 0.99
 EPSILON_START = 1.0
 EPSILON_MIN = 0.1
 EPSILON_DECAY = 0.995
+SEED = 42  # Reproducibility
 
 # Action space
 ACTIONS = [FourRooms.UP, FourRooms.DOWN, FourRooms.LEFT, FourRooms.RIGHT]
 
-# Q-table
-Q = {}
+# Hyperparameter combinations to try
+PARAM_GRID = [
+    {"alpha": 0.1, "gamma": 0.95, "epsilon_decay": 0.99},
+    {"alpha": 0.05, "gamma": 0.99, "epsilon_decay": 0.995},
+    {"alpha": 0.2, "gamma": 0.90, "epsilon_decay": 0.98},
+]
 
-def get_state(fourRoomsObj):
-    x, y = fourRoomsObj.getPosition()
-    k = fourRoomsObj.getPackagesRemaining()
-    return (x, y, k)
+# Softmax action selection
+def softmax_selection(state, tau):
+    if state not in Q:
+        Q[state] = np.zeros(len(ACTIONS))
+    preferences = Q[state] / tau
+    max_pref = np.max(preferences)
+    exp_prefs = np.exp(preferences - max_pref)  # for numerical stability
+    probs = exp_prefs / np.sum(exp_prefs)
+    return np.random.choice(ACTIONS, p=probs)
 
-def select_action(state, epsilon):
+def epsilon_greedy_selection(state, epsilon):
     if state not in Q:
         Q[state] = np.zeros(len(ACTIONS))
     if random.random() < epsilon:
         return random.choice(ACTIONS)
     return np.argmax(Q[state])
 
+def get_state(fourRoomsObj):
+    x, y = fourRoomsObj.getPosition()
+    k = fourRoomsObj.getPackagesRemaining()
+    return (x, y, k)
+
 def get_reward(cell_type, is_terminal):
     if is_terminal and cell_type > 0:
-        return 100  # Package collected
-    return -1  # Movement penalty
+        return 100
+    return -1
+
+def train_strategy(strategy, alpha, gamma, epsilon_decay, log_file):
+    global Q
+    Q = {}
+    epsilon = EPSILON_START
+    tau = 1.0  # for softmax
+    rewards = []
+
+    fourRoomsObj = FourRooms('simple', stochastic='-stochastic' in sys.argv)
+
+    for episode in range(EPISODES):
+        fourRoomsObj.newEpoch()
+        state = get_state(fourRoomsObj)
+        total_reward = 0
+
+        while not fourRoomsObj.isTerminal():
+            if strategy == 'softmax':
+                action = softmax_selection(state, tau)
+            else:
+                action = epsilon_greedy_selection(state, epsilon)
+
+            cell_type, _, _, is_terminal = fourRoomsObj.takeAction(action)
+            next_state = get_state(fourRoomsObj)
+            reward = get_reward(cell_type, is_terminal)
+
+            if next_state not in Q:
+                Q[next_state] = np.zeros(len(ACTIONS))
+
+            best_next_action = np.max(Q[next_state])
+            Q[state][action] += alpha * (reward + gamma * best_next_action - Q[state][action])
+            state = next_state
+            total_reward += reward
+
+        epsilon = max(EPSILON_MIN, epsilon * epsilon_decay)
+        tau = max(0.1, tau * 0.99)  # softmax temperature decay
+        rewards.append(total_reward)
+        log_file.write(f"[{strategy.upper()}] Ep {episode+1}, Reward: {total_reward}, Eps: {epsilon:.3f}, Tau: {tau:.3f}\n")
+
+    return rewards, fourRoomsObj
 
 def main():
-    stochastic = '-stochastic' in sys.argv
-    fourRoomsObj = FourRooms('simple', stochastic=stochastic)
+    # Set seed for reproducibility
+    random.seed(SEED)
+    np.random.seed(SEED)
 
-    # Create log and plot directories
     os.makedirs("logs", exist_ok=True)
     os.makedirs("plots", exist_ok=True)
 
-    log_file_path = os.path.join("logs", "scenario1_log.txt")
+    log_file_path = os.path.join("logs", "scenario1_comparison_log.txt")
     with open(log_file_path, "w") as log_file:
-        episode_rewards = []
-        epsilon = EPSILON_START
+        log_file.write("Scenario 1: ε-greedy vs Softmax Exploration Comparison\n")
+        log_file.write(f"Using seed: {SEED}\n\n")
 
-        for episode in range(EPISODES):
-            fourRoomsObj.newEpoch()
-            state = get_state(fourRoomsObj)
-            total_reward = 0
+        for params in PARAM_GRID:
+            alpha, gamma, decay = params['alpha'], params['gamma'], params['epsilon_decay']
 
-            while not fourRoomsObj.isTerminal():
-                action = select_action(state, epsilon)
-                cell_type, new_pos, packages_left, is_terminal = fourRoomsObj.takeAction(action)
-                next_state = get_state(fourRoomsObj)
-                reward = get_reward(cell_type, is_terminal)
+            for strategy in ['epsilon_greedy', 'softmax']:
+                label = f"{strategy}_a{alpha}_g{gamma}_d{decay}"
+                log_file.write(f"\nRunning strategy: {label}\n")
+                rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
+                plt.plot(rewards, label=label)
+                env.showPath(-1, savefig=f"./plots/{label}_path.png")
 
-                if next_state not in Q:
-                    Q[next_state] = np.zeros(len(ACTIONS))
-
-                best_next_action = np.max(Q[next_state])
-                Q[state][action] += ALPHA * (reward + GAMMA * best_next_action - Q[state][action])
-                state = next_state
-                total_reward += reward
-
-            episode_rewards.append(total_reward)
-            epsilon = max(EPSILON_MIN, epsilon * EPSILON_DECAY)
-            log_line = f"Episode {episode+1}/{EPISODES}, Total Reward: {total_reward}, Epsilon: {epsilon:.3f}\n"
-            print(log_line.strip())
-            log_file.write(log_line)
-
-    # Save and show path for last run
-    fourRoomsObj.showPath(-1, savefig="./plots/scenario1_path.png")
-
-    # Plot rewards
-    plt.plot(episode_rewards)
-    plt.title("Scenario 1: Episode Rewards")
-    plt.xlabel("Episode")
-    plt.ylabel("Total Reward")
-    plt.savefig("./plots/scenario1_rewards.png")
-    plt.close()
+        plt.title("Scenario 1: Reward Comparison")
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.legend()
+        plt.savefig("./plots/scenario1_comparison_rewards.png")
+        plt.close()
 
 if __name__ == "__main__":
     main()
