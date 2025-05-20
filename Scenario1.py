@@ -112,7 +112,7 @@ def main():
                 log_file.write(f"\nRunning strategy: {label}\n")
                 rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
                 plt.plot(rewards, label=label)
-                env.showPath(-1, savefig=f"./plots/{label}_path.png")
+                env.showPath(-1, savefig=f"./plots/scenario_1_{label}_path.png")
 
         plt.title("Scenario 1: Reward Comparison")
         plt.xlabel("Episode")
