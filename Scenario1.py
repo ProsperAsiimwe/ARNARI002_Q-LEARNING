@@ -8,11 +8,8 @@ from math import exp
 
 # Parameters
 EPISODES = 500
-ALPHA = 0.1
-GAMMA = 0.99
 EPSILON_START = 1.0
 EPSILON_MIN = 0.1
-EPSILON_DECAY = 0.995
 SEED = 42  # Reproducibility
 
 # Action space
@@ -25,13 +22,16 @@ PARAM_GRID = [
     {"alpha": 0.2, "gamma": 0.90, "epsilon_decay": 0.98},
 ]
 
-# Softmax action selection
+# Q-table
+Q = {}
+
+# Action selection strategies
 def softmax_selection(state, tau):
     if state not in Q:
         Q[state] = np.zeros(len(ACTIONS))
     preferences = Q[state] / tau
     max_pref = np.max(preferences)
-    exp_prefs = np.exp(preferences - max_pref)  # for numerical stability
+    exp_prefs = np.exp(preferences - max_pref)  # numerical stability
     probs = exp_prefs / np.sum(exp_prefs)
     return np.random.choice(ACTIONS, p=probs)
 
@@ -42,9 +42,9 @@ def epsilon_greedy_selection(state, epsilon):
         return random.choice(ACTIONS)
     return np.argmax(Q[state])
 
-def get_state(fourRoomsObj):
-    x, y = fourRoomsObj.getPosition()
-    k = fourRoomsObj.getPackagesRemaining()
+def get_state(env):
+    x, y = env.getPosition()
+    k = env.getPackagesRemaining()
     return (x, y, k)
 
 def get_reward(cell_type, is_terminal):
@@ -59,21 +59,17 @@ def train_strategy(strategy, alpha, gamma, epsilon_decay, log_file):
     tau = 1.0  # for softmax
     rewards = []
 
-    fourRoomsObj = FourRooms('simple', stochastic='-stochastic' in sys.argv)
+    env = FourRooms('simple', stochastic='-stochastic' in sys.argv)
 
     for episode in range(EPISODES):
-        fourRoomsObj.newEpoch()
-        state = get_state(fourRoomsObj)
+        env.newEpoch()
+        state = get_state(env)
         total_reward = 0
 
-        while not fourRoomsObj.isTerminal():
-            if strategy == 'softmax':
-                action = softmax_selection(state, tau)
-            else:
-                action = epsilon_greedy_selection(state, epsilon)
-
-            cell_type, _, _, is_terminal = fourRoomsObj.takeAction(action)
-            next_state = get_state(fourRoomsObj)
+        while not env.isTerminal():
+            action = softmax_selection(state, tau) if strategy == 'softmax' else epsilon_greedy_selection(state, epsilon)
+            cell_type, _, _, is_terminal = env.takeAction(action)
+            next_state = get_state(env)
             reward = get_reward(cell_type, is_terminal)
 
             if next_state not in Q:
@@ -85,16 +81,16 @@ def train_strategy(strategy, alpha, gamma, epsilon_decay, log_file):
             total_reward += reward
 
         epsilon = max(EPSILON_MIN, epsilon * epsilon_decay)
-        tau = max(0.1, tau * 0.99)  # softmax temperature decay
+        tau = max(0.1, tau * 0.99)
         rewards.append(total_reward)
+
         log_line = f"[{strategy.upper()}] Ep {episode+1}, Reward: {total_reward}, Eps: {epsilon:.3f}, Tau: {tau:.3f}"
         print(log_line)
         log_file.write(log_line + "\n")
 
-    return rewards, fourRoomsObj
+    return rewards, env
 
 def main():
-    # Set seed for reproducibility
     random.seed(SEED)
     np.random.seed(SEED)
 
@@ -103,15 +99,13 @@ def main():
 
     log_file_path = os.path.join("logs", "scenario1_comparison_log.txt")
     with open(log_file_path, "w") as log_file:
-        header = "Scenario 1: ε-greedy vs Softmax Exploration Comparison"
-        print(header)
-        log_file.write(header + "\n")
+        print("Scenario 1: ε-greedy vs Softmax Exploration Comparison")
+        log_file.write("Scenario 1: ε-greedy vs Softmax Exploration Comparison\n")
         print(f"Using seed: {SEED}\n")
         log_file.write(f"Using seed: {SEED}\n\n")
 
         for params in PARAM_GRID:
             alpha, gamma, decay = params['alpha'], params['gamma'], params['epsilon_decay']
-
             for strategy in ['epsilon_greedy', 'softmax']:
                 label = f"{strategy}_a{alpha}_g{gamma}_d{decay}"
                 print(f"\nRunning strategy: {label}")
