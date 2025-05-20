@@ -117,8 +117,9 @@ def main():
         plt.title("Scenario 2: Reward Comparison")
         plt.xlabel("Episode")
         plt.ylabel("Total Reward")
-        plt.legend()
-        plt.savefig("./plots/scenario2_comparison_rewards.png")
+        plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+        plt.tight_layout()
+        plt.savefig("./plots/scenario2_comparison_rewards.png", bbox_inches="tight")
         plt.close()
 
 if __name__ == "__main__":
