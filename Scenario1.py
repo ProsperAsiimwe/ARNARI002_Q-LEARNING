@@ -87,7 +87,9 @@ def train_strategy(strategy, alpha, gamma, epsilon_decay, log_file):
         epsilon = max(EPSILON_MIN, epsilon * epsilon_decay)
         tau = max(0.1, tau * 0.99)  # softmax temperature decay
         rewards.append(total_reward)
-        log_file.write(f"[{strategy.upper()}] Ep {episode+1}, Reward: {total_reward}, Eps: {epsilon:.3f}, Tau: {tau:.3f}\n")
+        log_line = f"[{strategy.upper()}] Ep {episode+1}, Reward: {total_reward}, Eps: {epsilon:.3f}, Tau: {tau:.3f}"
+        print(log_line)
+        log_file.write(log_line + "\n")
 
     return rewards, fourRoomsObj
 
@@ -101,7 +103,10 @@ def main():
 
     log_file_path = os.path.join("logs", "scenario1_comparison_log.txt")
     with open(log_file_path, "w") as log_file:
-        log_file.write("Scenario 1: ε-greedy vs Softmax Exploration Comparison\n")
+        header = "Scenario 1: ε-greedy vs Softmax Exploration Comparison"
+        print(header)
+        log_file.write(header + "\n")
+        print(f"Using seed: {SEED}\n")
         log_file.write(f"Using seed: {SEED}\n\n")
 
         for params in PARAM_GRID:
@@ -109,6 +114,7 @@ def main():
 
             for strategy in ['epsilon_greedy', 'softmax']:
                 label = f"{strategy}_a{alpha}_g{gamma}_d{decay}"
+                print(f"\nRunning strategy: {label}")
                 log_file.write(f"\nRunning strategy: {label}\n")
                 rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
                 plt.plot(rewards, label=label)
