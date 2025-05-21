@@ -117,7 +117,11 @@ def main():
                 log_file.write(f"\nRunning strategy: {label}\n")
                 rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
                 plt.plot(rewards, label=label)
-                env.showPath(-1, savefig=f"./plots/scenario_1_{label}_path.png")
+
+                if '-show' in sys.argv:
+                    env.showPath(-1)
+                else:
+                    env.showPath(-1, savefig=f"./plots/scenario_1_{label}_path.png")
 
                 avg_last_50 = np.mean(rewards[-50:])
                 if avg_last_50 > best_avg_reward:
@@ -128,7 +132,11 @@ def main():
 
         # Highlight best run
         plt.plot(best_rewards, label=f"BEST: {best_label}", linewidth=3, linestyle='--')
-        best_env.showPath(-1, savefig=f"./best_plots/scenario_1_best_run_path.png")
+
+        if '-show' in sys.argv:
+            best_env.showPath(-1)
+        else:
+            best_env.showPath(-1, savefig="./best_plots/scenario_1_best_run_path.png")
 
         plt.title("Scenario 1: Reward Comparison")
         plt.xlabel("Episode")
