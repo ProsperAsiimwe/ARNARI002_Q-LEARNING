@@ -4,7 +4,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 
 ## Files
 
-- `FourRooms.py` — The environment (do not modify).
+- `FourRooms.py` — The environment.
 - `Scenario1.py` — Agent must collect one package (`scenario='simple'`).
 - `Scenario2.py` — Agent must collect four packages (`scenario='multi'`).
 - `Scenario3.py` — Agent must collect three packages in order: Red → Green → Blue (`scenario='rgb'`).
@@ -17,7 +17,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 
 ## General Structure
 
-- **Environment**: `FourRooms.py` (not modified)
+- **Environment**: `FourRooms.py` 
 - **Action Space**: UP, DOWN, LEFT, RIGHT
 - **Exploration Strategies**:
   - **ε-greedy**: Random action with probability ε
