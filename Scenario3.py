@@ -48,7 +48,7 @@ def get_state(env):
 def get_reward(cell_type, is_terminal, packages_remaining):
     if is_terminal:
         if packages_remaining == 0:
-            return 100  # Successfully collected R->G->B
+            return 100  # Correctly collected R->G->B
         else:
             return -100  # Wrong order
     elif cell_type > 0:
@@ -99,6 +99,7 @@ def main():
 
     os.makedirs("logs", exist_ok=True)
     os.makedirs("plots", exist_ok=True)
+    os.makedirs("best_plots", exist_ok=True)
 
     log_file_path = os.path.join("logs", "scenario3_comparison_log.txt")
     with open(log_file_path, "w") as log_file:
@@ -106,6 +107,11 @@ def main():
         log_file.write("Scenario 3: ε-greedy vs Softmax Exploration Comparison\n")
         print(f"Using seed: {SEED}\n")
         log_file.write(f"Using seed: {SEED}\n\n")
+
+        best_avg_reward = float('-inf')
+        best_label = None
+        best_rewards = []
+        best_env = None
 
         for params in PARAM_GRID:
             alpha, gamma, decay = params['alpha'], params['gamma'], params['epsilon_decay']
@@ -116,6 +122,17 @@ def main():
                 rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
                 plt.plot(rewards, label=label)
                 env.showPath(-1, savefig=f"./plots/scenario_3_{label}_path.png")
+
+                avg_last_50 = np.mean(rewards[-50:])
+                if avg_last_50 > best_avg_reward:
+                    best_avg_reward = avg_last_50
+                    best_label = label
+                    best_rewards = rewards
+                    best_env = env
+
+        # Highlight best run
+        plt.plot(best_rewards, label=f"BEST: {best_label}", linewidth=3, linestyle='--')
+        best_env.showPath(-1, savefig=f"./best_plots/scenario_3_best_run_path.png")
 
         plt.title("Scenario 3: Reward Comparison")
         plt.xlabel("Episode")

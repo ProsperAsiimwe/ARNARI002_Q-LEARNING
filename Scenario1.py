@@ -25,13 +25,12 @@ PARAM_GRID = [
 # Q-table
 Q = {}
 
-# Action selection strategies
 def softmax_selection(state, tau):
     if state not in Q:
         Q[state] = np.zeros(len(ACTIONS))
     preferences = Q[state] / tau
     max_pref = np.max(preferences)
-    exp_prefs = np.exp(preferences - max_pref)  # numerical stability
+    exp_prefs = np.exp(preferences - max_pref)
     probs = exp_prefs / np.sum(exp_prefs)
     return np.random.choice(ACTIONS, p=probs)
 
@@ -56,7 +55,7 @@ def train_strategy(strategy, alpha, gamma, epsilon_decay, log_file):
     global Q
     Q = {}
     epsilon = EPSILON_START
-    tau = 1.0  # for softmax
+    tau = 1.0
     rewards = []
 
     env = FourRooms('simple', stochastic='-stochastic' in sys.argv)
@@ -96,6 +95,7 @@ def main():
 
     os.makedirs("logs", exist_ok=True)
     os.makedirs("plots", exist_ok=True)
+    os.makedirs("best_plots", exist_ok=True)
 
     log_file_path = os.path.join("logs", "scenario1_comparison_log.txt")
     with open(log_file_path, "w") as log_file:
@@ -103,6 +103,11 @@ def main():
         log_file.write("Scenario 1: ε-greedy vs Softmax Exploration Comparison\n")
         print(f"Using seed: {SEED}\n")
         log_file.write(f"Using seed: {SEED}\n\n")
+
+        best_avg_reward = float('-inf')
+        best_label = None
+        best_rewards = []
+        best_env = None
 
         for params in PARAM_GRID:
             alpha, gamma, decay = params['alpha'], params['gamma'], params['epsilon_decay']
@@ -113,6 +118,17 @@ def main():
                 rewards, env = train_strategy(strategy, alpha, gamma, decay, log_file)
                 plt.plot(rewards, label=label)
                 env.showPath(-1, savefig=f"./plots/scenario_1_{label}_path.png")
+
+                avg_last_50 = np.mean(rewards[-50:])
+                if avg_last_50 > best_avg_reward:
+                    best_avg_reward = avg_last_50
+                    best_label = label
+                    best_rewards = rewards
+                    best_env = env
+
+        # Highlight best run
+        plt.plot(best_rewards, label=f"BEST: {best_label}", linewidth=3, linestyle='--')
+        best_env.showPath(-1, savefig=f"./best_plots/scenario_1_best_run_path.png")
 
         plt.title("Scenario 1: Reward Comparison")
         plt.xlabel("Episode")
