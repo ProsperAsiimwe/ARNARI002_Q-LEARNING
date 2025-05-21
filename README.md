@@ -33,7 +33,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 ## Scenario 1: Simple Package Collection
 
 - **Objective**: Collect 1 randomly placed package.
-- **Run**: `python Scenario1.py`
+- **Run**: `python Scenario1.py` or `python Scenario1.py -show` to display on GUI
 - **Behavior**:
   - Compares both ε-greedy and softmax
   - Evaluates multiple hyperparameter settings
@@ -45,7 +45,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 ## Scenario 2: Multiple Package Collection
 
 - **Objective**: Collect 4 packages scattered across the grid.
-- **Run**: `python Scenario2.py`
+- **Run**: `python Scenario2.py` or `python Scenario2.py -show` to display on GUI
 - **Behavior**:
   - Compares strategies and hyperparameters
   - Selects the best configuration based on average reward
@@ -56,7 +56,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 ## Scenario 3: Ordered RGB Package Collection
 
 - **Objective**: Collect three packages in the strict order Red → Green → Blue.
-- **Run**: `python Scenario3.py`
+- **Run**: `python Scenario3.py` or `python Scenario3.py -show` to display on GUI
 - **Behavior**:
   - Early termination on wrong order
   - Evaluates agent precision across exploration methods
