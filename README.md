@@ -34,7 +34,7 @@ This project implements Q-learning agents to solve increasingly complex package 
 
 - **Objective**: Collect 1 randomly placed package.
 - **Run**: `python Scenario1.py`
-- **Enhancements**:
+- **Behavior**:
   - Compares both ε-greedy and softmax
   - Evaluates multiple hyperparameter settings
   - Automatically identifies the best-performing config
